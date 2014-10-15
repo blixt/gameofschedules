@@ -151,20 +151,27 @@ Scheduler.prototype.getObject = function () {
 };
 
 Scheduler.prototype.schedule = function (fn, opts) {
-  if (!_modules.length) {
+  var module = getModule();
+  if (!module) {
     throw new Error('Cannot schedule calls from outside a module');
   }
 
-  var fnName, module = getModule();
-  for (var member in module) {
-    if (module.hasOwnProperty(member) && module[member] == fn) {
-      fnName = member;
-      break;
+  var fnName;
+  if (typeof fn == 'string') {
+    fnName = fn;
+  } else if (typeof fn == 'function') {
+    for (var member in module) {
+      if (module.hasOwnProperty(member) && module[member] == fn) {
+        fnName = member;
+        break;
+      }
     }
-  }
 
-  if (!fnName) {
-    throw new Error('The specified function is not available in the current module');
+    if (!fnName) {
+      throw new Error('Function is not available in current module (use strings to refer to other modules)');
+    }
+  } else {
+    throw new Error('Invalid function');
   }
 
   if (!opts.delay) opts.delay = 0;
