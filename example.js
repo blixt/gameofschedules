@@ -28,7 +28,7 @@ runtime.registerModule(module);
 
 for (var i = 0; i < 10; i++) {
   setTimeout(function () {
-    console.log('ticking runtime...');
+    console.log('ticking runtime... ' + runtime.toJSON());
     runtime.tick();
   }, i * 1500);
 }
