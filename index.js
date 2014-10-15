@@ -81,10 +81,10 @@ Runtime.prototype.registerModule = function (module) {
 };
 
 Runtime.prototype.tick = function () {
-  var exec = this._scheduler.getNext();
-  if (!exec) return false;
+  var item = this._scheduler.getNext();
+  if (!item) return false;
 
-  var parts = exec.id.split('.');
+  var parts = item.id.split('.');
   if (!this._modules.hasOwnProperty(parts[0])) {
     console.warn('Could not find module ' + parts[0]);
     return this.tick();
@@ -92,12 +92,12 @@ Runtime.prototype.tick = function () {
 
   var module = this._modules[parts[0]];
   if (!module.hasOwnProperty(parts[1])) {
-    console.warn('Could not find function ' + exec.id);
+    console.warn('Could not find function ' + item.id);
     return this.tick();
   }
 
   _modules.push(module);
-  module[parts[1]](this._interface);
+  module[parts[1]](this._interface, item.data);
   _modules.pop();
 
   return true;
@@ -130,7 +130,8 @@ Scheduler.prototype.getNext = function () {
       continue;
     }
 
-    if (item.priority > highestPrio) {
+    var prio = typeof item.priority == 'number' ? item.priority : 0;
+    if (prio > highestPrio) {
       selectedItem = item;
       highestPrio = item.priority;
     }
@@ -174,17 +175,18 @@ Scheduler.prototype.schedule = function (fn, opts) {
     throw new Error('Invalid function');
   }
 
-  if (!opts.delay) opts.delay = 0;
-  if (!opts.priority) opts.priority = 0;
+  var now = +new Date(),
+      when = now + (opts.delay || 0),
+      until;
 
-  var now = +new Date(), when = now + opts.delay, until;
-  if (opts.expireAfter) {
+  if (typeof opts.expireAfter == 'number') {
     until = when + opts.expireAfter;
   }
 
   // Create a schedule item for the function.
   var newItem = {
     id: module.name + '.' + fnName,
+    data: opts.data,
     priority: opts.priority,
     when: when,
     until: until
