@@ -1,5 +1,9 @@
 // This will refer to the currently executing module for the scheduler and state.
-var __module__ = null;
+var _modules = [];
+
+function getModule() {
+  return _modules[_modules.length - 1];
+}
 
 // Returns an object with methods to interact with the environment without leaking anything.
 function createInterface(scheduler, state) {
@@ -22,11 +26,18 @@ function createInterface(scheduler, state) {
     },
 
     set: function (key, value) {
+      if (!_modules.length) {
+        throw new Error('Attempted to change state outside of runtime');
+      }
+      var module = getModule();
+
       var oldValue = state.get(key);
       state.set(key, value);
       if (triggers.hasOwnProperty(key)) {
         triggers[key].forEach(function (callback) {
+          _modules.push(module);
           callback(value, oldValue);
+          _modules.pop();
         });
       }
     }
@@ -61,9 +72,9 @@ Runtime.prototype.registerModule = function (module) {
   this._modules[module.name] = module;
 
   if (typeof module.init == 'function') {
-    __module__ = module;
+    _modules.push(module);
     module.init(this._interface);
-    __module__ = null;
+    _modules.pop();
   } else {
     console.warn('Module "' + module.name + '" has no init function');
   }
@@ -85,7 +96,10 @@ Runtime.prototype.tick = function () {
     return this.tick();
   }
 
+  _modules.push(module);
   module[parts[1]](this._interface);
+  _modules.pop();
+
   return true;
 };
 
@@ -129,13 +143,13 @@ Scheduler.prototype.getObject = function () {
 };
 
 Scheduler.prototype.schedule = function (fn, opts) {
-  if (!__module__) {
+  if (!_modules.length) {
     throw new Error('Cannot schedule calls from outside a module');
   }
 
-  var fnName;
-  for (var member in __module__) {
-    if (__module__.hasOwnProperty(member) && __module__[member] == fn) {
+  var fnName, module = getModule();
+  for (var member in module) {
+    if (module.hasOwnProperty(member) && module[member] == fn) {
       fnName = member;
       break;
     }
@@ -155,7 +169,7 @@ Scheduler.prototype.schedule = function (fn, opts) {
 
   // Create a schedule item for the function.
   var newItem = {
-    id: __module__.name + '.' + fnName,
+    id: module.name + '.' + fnName,
     priority: opts.priority,
     when: when,
     until: until
