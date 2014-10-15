@@ -26,10 +26,10 @@ function createInterface(scheduler, state) {
     },
 
     set: function (key, value) {
-      if (!_modules.length) {
+      var module = getModule();
+      if (!module) {
         throw new Error('Attempted to change state outside of runtime');
       }
-      var module = getModule();
 
       var oldValue = state.get(key);
       state.set(key, value);
