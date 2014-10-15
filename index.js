@@ -117,23 +117,31 @@ function Scheduler(opt_schedule) {
 }
 
 Scheduler.prototype.getNext = function () {
-  var now = +new Date();
+  var now = +new Date(), highestPrio = -Infinity,
+      selectedItem = null;
+
   for (var i = 0; i < this._schedule.length; i++) {
     var item = this._schedule[i];
-    if (item.garbage || item.when > now) continue;
-
-    // Mark the item as unusable again.
-    item.garbage = true;
-
+    if (item.garbage) continue;
+    if (item.when > now) break;
     if (item.until < now) {
       // Item passed its expiration date.
+      item.garbage = true;
       continue;
     }
 
-    return item;
+    if (item.priority > highestPrio) {
+      selectedItem = item;
+      highestPrio = item.priority;
+    }
   }
 
-  return null;
+  if (selectedItem) {
+    // Mark the item as unusable again.
+    selectedItem.garbage = true;
+  }
+
+  return selectedItem;
 };
 
 Scheduler.prototype.getObject = function () {
@@ -175,15 +183,11 @@ Scheduler.prototype.schedule = function (fn, opts) {
     until: until
   };
 
-  // Calculate the index to insert the item at, based on priority and time.
+  // Calculate the index to insert the item at, based on time.
   var index = 0;
   while (index < this._schedule.length) {
     var item = this._schedule[index];
-    if (item.priority == newItem.priority) {
-      if (item.when > newItem.when) break;
-    } else if (item.priority < newItem.priority) {
-      break;
-    }
+    if (item.when > newItem.when) break;
     index++;
   }
 
