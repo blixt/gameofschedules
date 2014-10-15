@@ -32,6 +32,8 @@ function createInterface(scheduler, state) {
       }
 
       var oldValue = state.get(key);
+      if (oldValue === value) return;
+
       state.set(key, value);
       if (triggers.hasOwnProperty(key)) {
         triggers[key].forEach(function (callback) {
