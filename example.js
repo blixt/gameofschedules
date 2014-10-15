@@ -12,14 +12,11 @@ var module = {
       console.log('At first I was like ' + oldValue + ' but then I was like ' + value);
     });
 
-    game.schedule(module.makeHappy, {
-      delay: 10000,
-      expireAfter: 10000
-    });
+    game.schedule(module.makeHappy, {delay: 5000, data: 123});
   },
 
-  makeHappy: function (game) {
-    game.set('happiness', 100);
+  makeHappy: function (game, data) {
+    game.set('happiness', data);
   }
 };
 
